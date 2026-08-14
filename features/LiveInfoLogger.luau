@@ -1,4 +1,3 @@
--- [Roblox | Luau | Info Logger window — universal]
 local Players = game:GetService("Players")
 local MarketplaceService = game:GetService("MarketplaceService")
 local UserInputService = game:GetService("UserInputService")
@@ -184,6 +183,4 @@ function M:SetEnabled(v)
 end
 
 getgenv().InfoLoggerUI = M
-return M
-getgenv().LiveInfoLoggerModule = M
 return M
