@@ -1,3 +1,6 @@
+-- [Roblox | Luau | Timing Builder — create/save/load/delete timings as JSON]
+-- Saved to: <executor>/Builder/timings/<name>.json
+
 local HttpService = game:GetService("HttpService")
 
 local FOLDER = "Builder/timings"
@@ -6,7 +9,12 @@ if not isfolder(FOLDER) then makefolder(FOLDER) end
 local M = {}
 M.Timings = {}
 M.Selected = nil
+M.Enabled = false
+M.LogCaptured = false
+M.LiveLogger = false
+M.LoggerOpen = false
 
+-- ── TIMING DATA MODEL ──
 local function newTiming()
     return {
         name = "", _id = "", tag = "Undefined",
@@ -24,7 +32,9 @@ end
 
 local function timingPath(name) return FOLDER .. "/" .. name .. ".json" end
 
-function M.SaveTiming(t) writefile(timingPath(t.name), HttpService:JSONEncode(t)) end
+function M.SaveTiming(t)
+    writefile(timingPath(t.name), HttpService:JSONEncode(t))
+end
 
 function M.LoadAll()
     M.Timings = {}
@@ -46,7 +56,13 @@ function M.GetSelected()
     return M.Timings[M.Selected]
 end
 
--- Setters (called by UI)
+function M.Count()
+    local c = 0
+    for _ in pairs(M.Timings) do c = c + 1 end
+    return c
+end
+
+-- ── SETTERS (called by UI) ──
 function M:SetEnabled(v) M.Enabled = v end
 function M:SetLogCaptured(v) M.LogCaptured = v end
 function M:SetAnimationID(v) M._pendingID = v end
@@ -61,11 +77,12 @@ function M:SetRepeat(v) M._pendingRepeat = v end
 function M:SetRepeatDelay(v) M._pendingRepeatDelay = v end
 function M:SetLiveLogger(v) M.LiveLogger = v end
 
+-- ── CREATE / UPDATE / REMOVE ──
 function M:CreateTiming()
     local cfg = getgenv().BuilderConfig
     local name = cfg.AnimationName
-    if not name or name == "" then return end
-    if M.Timings[name] then return end
+    if not name or name == "" then return nil end
+    if M.Timings[name] then return nil end
 
     local t = newTiming()
     t.name = name
@@ -82,11 +99,12 @@ function M:CreateTiming()
     M.Timings[name] = t
     M.SaveTiming(t)
     M.Selected = name
+    return t
 end
 
 function M:UpdateTiming()
     local t = M.GetSelected()
-    if not t then return end
+    if not t then return nil end
     local cfg = getgenv().BuilderConfig
     t._id = cfg.AnimationID
     t.imxd = cfg.IMOD
@@ -97,29 +115,35 @@ function M:UpdateTiming()
         t.actions[1].hitbox = { X = cfg.Hitbox.X, Y = cfg.Hitbox.Y, Z = cfg.Hitbox.Z }
     end
     M.SaveTiming(t)
+    return t
 end
 
 function M:RemoveTiming()
-    if not M.Selected then return end
-    M.DeleteTiming(M.Selected)
+    if not M.Selected then return nil end
+    local name = M.Selected
+    M.DeleteTiming(name)
+    return name
 end
 
 function M:Preview()
-    local t = M.GetSelected()
-    if not t then return end
-    local HS = getgenv().HitboxSimModule
-    if HS and HS.ShowFor then HS:ShowFor(t) end
+    return M.GetSelected()
 end
 
 function M:Visualize()
     local t = M.GetSelected()
-    if not t then return end
+    if not t then return nil end
     local HS = getgenv().HitboxSimModule
     if HS and HS.ShowFor then HS:ShowFor(t) end
+    return t
 end
 
-function M:OpenLogger() M.LoggerOpen = true end
+function M:OpenLogger()
+    M.LoggerOpen = true
+    M.LiveLogger = true
+end
 
+-- Load on init
 M.LoadAll()
+
 getgenv().AnimationBuilderModule = M
 return M
